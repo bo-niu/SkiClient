@@ -86,14 +86,13 @@ public class MainRunner {
 
         //create threads for phase1.
         CountDownLatch phase1Complete10Percent = new CountDownLatch(phase1TotalThreads / 10 + 1); // round up
-        int numSkiersEachThread = numSkiers / phase1TotalThreads;
         for (int i=0; i<phase1TotalThreads; i++) {
             Phase1Thread phase1Thread = new Phase1Thread(numLifts,
-                    i * numSkiersEachThread,
-                    (i + 1) * numSkiersEachThread,
+                    i * numSkiers / phase1TotalThreads,
+                    (i + 1) * numSkiers / phase1TotalThreads,
                     ip,
                     port,
-                    (int) (numRuns * 0.2 * numSkiersEachThread),
+                    (int) (numRuns * 0.2 * numSkiers / phase1TotalThreads),
                     phase1Complete10Percent,
                     summary);
             Thread t = new Thread(phase1Thread);
@@ -129,8 +128,8 @@ public class MainRunner {
         //create threads for phase3.
         for (int i=0; i<phase3TotalThreads; i++) {
             Phase3Thread phase3Thread = new Phase3Thread(numLifts,
-                    i * numSkiersEachThread,
-                    (i + 1) * numSkiersEachThread,
+                    i * numSkiers / phase1TotalThreads,
+                    (i + 1) * numSkiers / phase1TotalThreads,
                     ip,
                     port,
                     (int) (0.1 * numRuns),
@@ -161,6 +160,8 @@ public class MainRunner {
         int successfulRequestCount = summary.getSuccessfulRequestCount().get();
         int unsuccessfulRequestCount = summary.getUnsuccessfulRequestCount().get();
 
+        System.out.println("\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+        System.out.println("Below is the result of part 1 for " + numThreads + " threads:");
         System.out.println("Successful request count: " + successfulRequestCount);
         System.out.println("Unsuccessful request count: " + unsuccessfulRequestCount);
         System.out.println("Total run time (wall time) is " + ms + "ms");

@@ -2,16 +2,18 @@ package part2;
 
 import org.apache.commons.cli.*;
 
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class MainRunner {
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException, IOException {
 
 
         Options options = new Options();
@@ -81,19 +83,19 @@ public class MainRunner {
         Thread[] phase1Threads = new Thread[phase1TotalThreads];
         Thread[] phase2Threads = new Thread[phase2TotalThreads];
         Thread[] phase3Threads = new Thread[phase3TotalThreads];
-        Summary summary = new Summary(new AtomicInteger(0), new AtomicInteger(0));
+        Summary summary = new Summary(new AtomicInteger(0), new AtomicInteger(0), new ArrayList<Record>());
         Timestamp start = new Timestamp(System.currentTimeMillis());
 
         //create threads for phase1.
+        System.out.println("Phase1: " + phase1TotalThreads + " threads, " + (int) (numRuns * 0.2 * numSkiers / phase1TotalThreads) + " POST each threads.");
         CountDownLatch phase1Complete10Percent = new CountDownLatch(phase1TotalThreads / 10 + 1); // round up
-        int numSkiersEachThread = numSkiers / phase1TotalThreads;
         for (int i=0; i<phase1TotalThreads; i++) {
             Phase1Thread phase1Thread = new Phase1Thread(numLifts,
-                    i * numSkiersEachThread,
-                    (i + 1) * numSkiersEachThread,
+                    i * numSkiers / phase1TotalThreads,
+                    (i + 1) * numSkiers / phase1TotalThreads,
                     ip,
                     port,
-                    (int) (numRuns * 0.2 * numSkiersEachThread),
+                    (int) (numRuns * 0.2 * numSkiers / phase1TotalThreads),
                     phase1Complete10Percent,
                     summary);
             Thread t = new Thread(phase1Thread);
@@ -103,6 +105,7 @@ public class MainRunner {
         phase1Complete10Percent.await();
 
         //create threads for phase2.
+        System.out.println("Phase2: " + phase2TotalThreads + " threads, " + (int) (numRuns * 0.6 * numSkiers / numThreads) + " POST each threads.");
         CountDownLatch phase2Complete10Percent = new CountDownLatch(phase2TotalThreads / 10 + 1); // round up
         ArrayList<Integer> skierIDList = new ArrayList<>();
         for (int i=0; i<numSkiers; i++) {
@@ -127,10 +130,11 @@ public class MainRunner {
         phase2Complete10Percent.await();
 
         //create threads for phase3.
+        System.out.println("Phase3: " + phase3TotalThreads + " threads, " + (int) (0.1 * numRuns) + " POST each threads.");
         for (int i=0; i<phase3TotalThreads; i++) {
             Phase3Thread phase3Thread = new Phase3Thread(numLifts,
-                    i * numSkiersEachThread,
-                    (i + 1) * numSkiersEachThread,
+                    i * numSkiers / phase1TotalThreads,
+                    (i + 1) * numSkiers / phase1TotalThreads,
                     ip,
                     port,
                     (int) (0.1 * numRuns),
@@ -152,20 +156,24 @@ public class MainRunner {
             phase3Threads[i].join();
         }
 
-
-
-
         Timestamp end = new Timestamp(System.currentTimeMillis());
         long diff = end.getTime() - start.getTime();
         long ms = TimeUnit.MILLISECONDS.toMillis(diff);
         int successfulRequestCount = summary.getSuccessfulRequestCount().get();
         int unsuccessfulRequestCount = summary.getUnsuccessfulRequestCount().get();
+        summary.setWallTime(diff);
 
+        System.out.println("\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+        System.out.println("Below is the result of part 2 for " + numThreads + " threads:");
         System.out.println("Successful request count: " + successfulRequestCount);
         System.out.println("Unsuccessful request count: " + unsuccessfulRequestCount);
         System.out.println("Total run time (wall time) is " + ms + "ms");
-        System.out.println("Total throughput in requests per second: "
-                + (successfulRequestCount + unsuccessfulRequestCount) / ((double)(ms) / 1000.0));
+        System.out.println("Mean response time: " + summary.getMeanResponseTime() + "ms");
+        System.out.println("Median response time: " + summary.getMedianResponseTime() + "ms");
+        System.out.println("Throughput: " + summary.getThroughput() + "/s");
+        System.out.println("P99 response time: " + summary.getP99ResponseTime() + "ms");
+        System.out.println("Max response time: " + summary.getMaxResponseTime() + "ms");
+        summary.toCSV("./csv/" + numThreads + "threads.csv");
     }
 
 }

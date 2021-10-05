@@ -27,21 +27,26 @@ public class Phase2Thread extends PhaseCommon {
     @Override
     public void run() {
 //        System.out.println("phase 2 thread starts: " + toString());
-        try {
-            for (int i=0; i<numPostRequest; i++) {
-                String url = "http://" + ip + ":" + port + "/SkiResorts_war/skiers/2/seasons/1/days/1/skiers/"
-                        + skierIDs.get(RandomNumberGenerator.getRandomNumberBetween(0, skierIDs.size()));
+        for (int i=0; i<numPostRequest; i++) {
+            String url = "http://" + ip + ":" + port + "/SkiResorts_war/skiers/2/seasons/1/days/1/skiers/"
+                    + skierIDs.get(RandomNumberGenerator.getRandomNumberBetween(0, skierIDs.size()));
+            try {
                 if (client.postJson(url, new Gson().toJson(getRandomLiftUsage()))) {
                     successfulRequestCount += 1;
                 } else {
                     unsuccessfulRequestCount += 1;
                 }
+            } catch (Exception e) {
+                unsuccessfulRequestCount += 1;
+                e.printStackTrace();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+            if (client.getResult() != null) {
+                summary.pushOneRecord(client.getResult());
+            }
         }
 
-        summary.pushOneRecord(client.getResult());
+        summary.getSuccessfulRequestCount().addAndGet(successfulRequestCount);
+        summary.getUnsuccessfulRequestCount().addAndGet(unsuccessfulRequestCount);
         completed.countDown();
 
 //        System.out.println("phase 2 thread ends: " + toString());

@@ -6,9 +6,27 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Summary {
-    private List<Record> records;
+    private final List<Record> records;
+    private final AtomicInteger successfulRequestCount;
+    private final AtomicInteger unsuccessfulRequestCount;
+    private long wallTime;
+
+    public Summary(AtomicInteger successfulRequestCount, AtomicInteger unsuccessfulRequestCount, List<Record> records) {
+        this.successfulRequestCount = successfulRequestCount;
+        this.unsuccessfulRequestCount = unsuccessfulRequestCount;
+        this.records = records;
+    }
+
+    public AtomicInteger getSuccessfulRequestCount() {
+        return successfulRequestCount;
+    }
+
+    public AtomicInteger getUnsuccessfulRequestCount() {
+        return unsuccessfulRequestCount;
+    }
 
     public synchronized void pushOneRecord(Record record) {
         records.add(record);
@@ -35,12 +53,10 @@ public class Summary {
         return TimeUnit.MILLISECONDS.toMillis(times.get(times.size() / 2));
     }
 
-    public synchronized double getThroughput() {
-        long wallTime;
+    public synchronized double getThroughput() { // per second
         List<Long> times = getResponseTimeList();
         assert(times.size() > 0);
-        wallTime = times.stream().mapToLong(time -> time).sum();
-        return (double)times.size() / wallTime;
+        return (double)times.size() / TimeUnit.MILLISECONDS.toMillis(wallTime) * 1000;
     }
 
     public synchronized double getP99ResponseTime() {
@@ -59,12 +75,12 @@ public class Summary {
 
     public synchronized void toCSV(String filename) throws IOException {
         FileWriter fw = new FileWriter(filename);
-        fw.write("start time, request type, latency, response code");
+        fw.write("start time, request type, latency, response code\n");
         for (Record r: records) {
             fw.write("" + r.getStartTime() + ","
                     + r.getRequestType() + ","
             + r.getLatency() + ","
-            + r.getResponseCode());
+            + r.getResponseCode() + "\n");
         }
         fw.close();
     }
@@ -75,5 +91,13 @@ public class Summary {
             res.add(r.getLatency());
         }
         return res;
+    }
+
+    public long getWallTime() {
+        return wallTime;
+    }
+
+    public void setWallTime(long wallTime) {
+        this.wallTime = wallTime;
     }
 }
