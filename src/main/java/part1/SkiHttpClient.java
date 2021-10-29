@@ -17,7 +17,7 @@ public class SkiHttpClient {
 
     private static final HttpClient httpClient = HttpClient.newBuilder()
             .version(HttpClient.Version.HTTP_1_1)
-            .connectTimeout(Duration.ofSeconds(10))
+            .connectTimeout(Duration.ofSeconds(30))
             .build();
 
     public boolean postJson(String url, String json) throws IOException, InterruptedException {
@@ -27,6 +27,8 @@ public class SkiHttpClient {
                 .uri(URI.create(url))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(json))
+                .version(HttpClient.Version.HTTP_1_1)
+                .timeout(Duration.ofSeconds(30))
                 .build();
 
         while (retry > 0) {
