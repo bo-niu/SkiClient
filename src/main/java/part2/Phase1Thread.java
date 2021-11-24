@@ -32,6 +32,7 @@ public class Phase1Thread extends PhaseCommon {
     public void run() {
 //        System.out.println("phase 1 thread starts: " + toString());
         for (int i=0; i<numPostRequest; i++) {
+//            String url = "http://" + ip + ":" + port + "/SkiResorts_war_exploded/skiers/2/seasons/1/days/1/skiers/"
             String url = "http://" + ip + ":" + port + "/SkiResorts_war/skiers/2/seasons/1/days/1/skiers/"
                     + RandomNumberGenerator.getRandomNumberBetween(startSkierID, endSkierID);
             try {
